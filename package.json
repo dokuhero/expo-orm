@@ -1,0 +1,42 @@
+{
+  "name": "@dokuhero/expo-orm",
+  "version": "0.0.0",
+  "description": "SQLite ORM for Typescript works in Expo",
+  "main": "dist/index.js",
+  "typings": "typings/index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "compile": "tsc -d --declarationDir ./typings",
+    "build": "rm -rf typings && npm run compile && prettier ./typings/**/*.d.ts --write"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dokuhero/expo-orm.git"
+  },
+  "keywords": [
+    "ORM",
+    "ReactNative",
+    "Expo",
+    "SQLite",
+    "Database"
+  ],
+  "author": "Budi Adiono <budiadiono@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dokuhero/expo-orm/issues"
+  },
+  "homepage": "https://github.com/dokuhero/expo-orm#readme",
+  "peerDependencies": {
+    "expo": "^29.0.0"
+  },
+  "devDependencies": {
+    "@types/expo": "^27.0.8",
+    "@types/node": "^10.9.4",
+    "prettier": "^1.14.2",
+    "typescript": "^3.0.3"
+  },
+  "dependencies": {
+    "@dokuhero/debug": "^0.0.1",
+    "reflect-metadata": "^0.1.12"
+  }
+}
