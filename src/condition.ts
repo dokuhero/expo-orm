@@ -1,17 +1,25 @@
 import { Utils } from './utils'
+import { ColumnInfo } from './types'
 
 export class Condition<T> {
   _sql: string[] = []
 
   descriptor: {}
+  columns: { [key: string]: { primary: boolean } & ColumnInfo } = {}
 
-  constructor(descriptor: {}) {
+  constructor(
+    descriptor: {},
+    columns: { [key: string]: { primary: boolean } & ColumnInfo }
+  ) {
     this.descriptor = descriptor
+    this.columns = columns
   }
 
   equals(p: { [key in keyof Partial<T>]: any }) {
     Object.keys(p).map(k => {
-      this._sql.push(`${k} = ${Utils.asValue((p as any)[k])}`)
+      this._sql.push(
+        `${k} = ${Utils.asValue(this.columns[k].type, (p as any)[k])}`
+      )
     })
     return this
   }
@@ -20,7 +28,7 @@ export class Condition<T> {
     Object.keys(p).map(k => {
       this._sql.push(
         `${k} IN (${(p as any)[k]
-          .map((v: any) => Utils.asValue(v))
+          .map((v: any) => Utils.asValue(this.columns[k].type, v))
           .join(', ')})`
       )
     })
@@ -30,8 +38,12 @@ export class Condition<T> {
   between(p: { [key in keyof Partial<T>]: any[] }) {
     Object.keys(p).map(k => {
       const val = (p as any)[k]
+      const colType = this.columns[k].type
       this._sql.push(
-        `${k} BETWEEN ${Utils.asValue(val[0])} AND ${Utils.asValue(val[1])}`
+        `${k} BETWEEN ${Utils.asValue(colType, val[0])} AND ${Utils.asValue(
+          colType,
+          val[1]
+        )}`
       )
     })
     return this
@@ -81,6 +93,4 @@ export type ConditionCallback<T> = (
   condition: Condition<ValueOf<T>>
 ) => Condition<ValueOf<T>>
 
-export type ConditionCallbackPure<T> = (
-  condition: Condition<T>
-) => Condition<T>
+export type ConditionCallbackPure<T> = (condition: Condition<T>) => Condition<T>

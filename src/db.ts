@@ -7,10 +7,10 @@ import {
   SQLite,
   Util
 } from 'expo'
-import { Table, TableClass } from './table'
+import { Table } from './table'
 import { DbTransaction } from './transaction'
 import { Utils } from './utils'
-import { KeyVal, ValueOf } from './types'
+import { KeyVal, ValueOf, TableClass } from './types'
 
 const debug = Debug('@dokuhero/expo-orm:db')
 

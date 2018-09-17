@@ -1,2 +1,4 @@
 export { Db } from './db'
-export { Table, Column, Primary } from './table'
+export { Table } from './table'
+export { Column } from './column'
+export { Primary } from './primary'

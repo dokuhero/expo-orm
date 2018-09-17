@@ -4,44 +4,11 @@ import 'reflect-metadata'
 import { Condition, ConditionCallbackPure } from './condition'
 import { Db } from './db'
 import { Utils } from './utils'
-import { ValueOf } from './types'
+import { ValueOf, TableClass, ColumnInfo } from './types'
+import { COLUMN_META_KEY } from './column'
+import { PRIMARY_META_KEY } from './primary'
 
 const debug = Debug('@dokuhero/expo-orm:table')
-const COLUMN_META_KEY = 'table:column'
-const PRIMARY_META_KEY = 'table:primary'
-
-type PrimaryKeyTypes = 'INTEGER' | 'NVARCHAR' | 'CHAR'
-type ColumnTypes = PrimaryKeyTypes | 'BOOLEAN' | 'DECIMAL'
-
-export interface TableClass<T> extends Function {
-  new (): T
-}
-
-export function Column(type: ColumnTypes, size?: number) {
-  const colSize = size ? `(${size})` : ``
-  let colType = ''
-  switch (type) {
-    case 'BOOLEAN':
-      colType = `BOOLEAN NOT NULL CHECK (%s IN (0,1))`
-      break
-    default:
-      colType = `${type}${colSize}`
-  }
-
-  return Reflect.metadata(COLUMN_META_KEY, `%s ${colType}`)
-}
-
-export function Primary(type: PrimaryKeyTypes = 'INTEGER', size?: number) {
-  const colSize = size ? `(${size})` : ``
-  let colType = ''
-  if (type === 'INTEGER') {
-    colType = type
-  } else {
-    colType = `${type}${colSize}`
-  }
-
-  return Reflect.metadata(PRIMARY_META_KEY, `%s ${colType} PRIMARY KEY`)
-}
 
 export class Table<M, T extends TableClass<M>> {
   properties: string[]
@@ -49,6 +16,7 @@ export class Table<M, T extends TableClass<M>> {
   table: M
   descriptor = {}
   db: Db<T>
+  columns: { [key: string]: { primary: boolean } & ColumnInfo } = {}
 
   constructor(table: T, db: Db<T>) {
     this.table = new table()
@@ -81,18 +49,39 @@ export class Table<M, T extends TableClass<M>> {
 
   createTable() {
     const { name, properties, table } = this
+
     const columns = properties
       .map(key => {
-        let column = Reflect.getMetadata(COLUMN_META_KEY, table, key) as string
+        let primary = false
+        let column = Reflect.getMetadata(
+          COLUMN_META_KEY,
+          table,
+          key
+        ) as ColumnInfo
 
         if (!column) {
-          column = Reflect.getMetadata(PRIMARY_META_KEY, table, key) as string
+          column = Reflect.getMetadata(
+            PRIMARY_META_KEY,
+            table,
+            key
+          ) as ColumnInfo
+          primary = true
         }
 
         if (!column) {
           return false
         }
-        return column.replace(new RegExp('%s', 'g'), key)
+
+        this.columns[key] = {
+          primary,
+          ...column
+        }
+
+        const colType = Utils.getRealColumnType(column)
+        const colSize = column.size ? `(${column.size})` : ''
+        const colPrimary = primary ? ' PRIMARY KEY' : ''
+
+        return `${key} ${colType}${colSize}${colPrimary}`
       })
       .filter(x => x !== false)
 
@@ -110,7 +99,10 @@ export class Table<M, T extends TableClass<M>> {
 
     for (const key of Object.keys(set)) {
       fields.push(key)
-      values.push(Utils.asValue((set as any)[key] as string))
+
+      values.push(
+        Utils.asValue(this.columns[key].type, (set as any)[key] as string)
+      )
     }
 
     const sqlUpsert = upsert ? ' OR REPLACE' : ''
@@ -145,7 +137,9 @@ export class Table<M, T extends TableClass<M>> {
     condition?: ConditionCallbackPure<M>
   ) {
     let sql = `UPDATE ${this.name} SET ${Object.keys(set)
-      .map(k => `${k} = ${Utils.asValue((set as any)[k])}`)
+      .map(
+        k => `${k} = ${Utils.asValue(this.columns[k].type, (set as any)[k])}`
+      )
       .join(', ')}`
 
     if (condition) {
@@ -198,6 +192,6 @@ export class Table<M, T extends TableClass<M>> {
   }
 
   private _condSql(fn: ConditionCallbackPure<M>) {
-    return fn(new Condition(this.descriptor)).sql()
+    return fn(new Condition(this.descriptor, this.columns)).sql()
   }
 }
