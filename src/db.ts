@@ -19,6 +19,10 @@ export interface DbConfig<TModels> {
   entities: TModels
 }
 
+export type Tables<T> = {
+  [P in keyof T]: Table<ValueOf<T[P]>, TableClass<ValueOf<T[P]>>>
+}
+
 export class Db<T> {
   /**
    * Create new database instance.
@@ -50,7 +54,7 @@ export class Db<T> {
 
   config!: DbConfig<T>
   sqliteDb!: SQLite.Database
-  tables!: { [P in keyof T]: Table<ValueOf<T[P]>, TableClass<ValueOf<T[P]>>> }
+  tables!: Tables<T>
 
   trx<S = any>(
     callback: (
