@@ -43,7 +43,23 @@ export class Table<M, T extends TableClass<M>> {
   query(sql: string): Promise<M> {
     debug('SQL QUERY:', sql)
     return this.db.trx<M>(async ({ query }) => {
-      return query<M>(sql)
+      return new Promise(resolve => {
+        query<M>(sql).then(data => {
+          const result = data.map(d => {
+            const obj = {}
+            Object.keys(d).forEach(k => {
+              if (this.columns[k].type === 'DATETIME') {
+                obj[k] = Utils.dateParse(d[k] as any)
+              } else {
+                obj[k] = d[k]
+              }
+            })
+            return obj
+          })
+
+          resolve(result)
+        })
+      })
     })
   }
 
@@ -118,16 +134,16 @@ export class Table<M, T extends TableClass<M>> {
 
   select(
     condition?: ConditionCallbackPure<M>,
-    fields?: ((k: ValueOf<T>) => void) | '*',
-    order?: { [P in keyof ValueOf<T>]?: 'ASC' | 'DESC' }
+    fields?: ((k: M) => void) | '*',
+    order?: { [P in keyof M]?: 'ASC' | 'DESC' }
   ) {
     return this.query(this._selectSql(condition, fields, order))
   }
 
   selectOne(
     condition?: ConditionCallbackPure<M>,
-    fields?: ((k: ValueOf<T>) => void) | '*',
-    order?: { [P in keyof ValueOf<T>]?: 'ASC' | 'DESC' }
+    fields?: ((k: M) => void) | '*',
+    order?: { [P in keyof M]?: 'ASC' | 'DESC' }
   ) {
     return this.single(this._selectSql(condition, fields, order) + ' LIMIT 1')
   }
@@ -157,11 +173,15 @@ export class Table<M, T extends TableClass<M>> {
 
   private _selectSql(
     condition?: ConditionCallbackPure<M>,
-    fields?: ((k: ValueOf<T>) => void) | '*',
-    order?: { [P in keyof ValueOf<T>]?: 'ASC' | 'DESC' }
+    fields?: ((k: M) => void) | '*',
+    order?: { [P in keyof M]?: 'ASC' | 'DESC' }
   ) {
     const { name } = this
     let flds: string = '*'
+
+    if (!fields || fields === '*') {
+      flds = this._mapSelectFields(Object.keys(this.columns))
+    }
 
     if (fields) {
       if (typeof fields === 'string') {
@@ -187,8 +207,29 @@ export class Table<M, T extends TableClass<M>> {
     return sql
   }
 
-  private _select(fn: (k: ValueOf<T>) => void) {
-    return fn.call(this, this.descriptor)
+  private _select(fn: (k: M) => void) {
+    const result = fn.call(this, this.descriptor)
+
+    const fields: string[] =
+      result instanceof Array ? result : result.split(',')
+    return this._mapSelectFields(fields)
+  }
+
+  private _mapSelectFields(fields: string[]) {
+    const selected: string[] = []
+
+    fields.forEach(k => {
+      selected.push(this._mapSelectField(k))
+    })
+    return selected.join(',')
+  }
+
+  private _mapSelectField(k: string) {
+    if (this.columns[k].type === 'DATETIME') {
+      return `datetime(${k},'unixepoch') AS ${k}`
+    } else {
+      return k
+    }
   }
 
   private _condSql(fn: ConditionCallbackPure<M>) {

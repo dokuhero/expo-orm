@@ -85,4 +85,19 @@ export class Utils {
       return padString.slice(0, targetLength) + str
     }
   }
+
+  static dateParse(str: string): Date {
+    const parts = str.split(' ')
+    const dates = parts[0].split('-').map(d => parseInt(d, 0))
+    const times = parts[1].split(':').map(d => parseInt(d, 0))
+
+    return new Date(
+      dates[0],
+      dates[1] - 1,
+      dates[2],
+      times[0],
+      times[1],
+      times[2]
+    )
+  }
 }
