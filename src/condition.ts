@@ -49,6 +49,33 @@ export class Condition<T> {
     return this
   }
 
+  contains(p: { [key in keyof Partial<T>]: string }) {
+    Object.keys(p).map(k => {
+      this._sql.push(
+        `${k} LIKE ${(p as any)[k]}`
+      )
+    })
+    return this
+  }
+
+  startsWith(p: { [key in keyof Partial<T>]: string }) {
+    Object.keys(p).map(k => {
+      this._sql.push(
+        `${k} LIKE ${(p as any)[k]}%`
+      )
+    })
+    return this
+  }
+
+  endsWith(p: { [key in keyof Partial<T>]: string }) {
+    Object.keys(p).map(k => {
+      this._sql.push(
+        `${k} LIKE %${(p as any)[k]}`
+      )
+    })
+    return this
+  }
+
   get or() {
     this._sql.push('OR')
     return this
