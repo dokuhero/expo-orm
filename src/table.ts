@@ -266,11 +266,12 @@ export class Table<M, T extends TableClass<M>> {
   }
 
   private _mapSelectField(k: string) {
+    const field = Utils.quote(k)
     if (this.columns[k].type === 'DATETIME') {
-      return `datetime(${k},'unixepoch') AS ${Utils.quote(k)}`
-    } else {
-      return Utils.quote(k)
+      return `datetime(${field},'unixepoch') AS ${field}`
     }
+
+    return field
   }
 
   private _condSql(fn: ConditionCallbackPure<M>) {
