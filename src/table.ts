@@ -152,9 +152,9 @@ export class Table<M, T extends TableClass<M>> {
       )}`
     })
 
-    const sql = `INSERT INTO ${Utils.quote(
-      this.name
-    )} SELECT ${selectVal} ${unions}`
+    const sql = `INSERT INTO ${Utils.quote(this.name)} (${fields.map(
+      Utils.quote
+    )}) SELECT ${selectVal} ${unions}`
     return this.exec(sql)
   }
 
@@ -241,7 +241,7 @@ export class Table<M, T extends TableClass<M>> {
       sql +=
         ' ORDER BY ' +
         Object.keys(order)
-          .map(k => `${k} ${(order as any)[k]}`)
+          .map(k => `${Utils.quote(k)} ${(order as any)[k]}`)
           .join(' ')
     }
 
