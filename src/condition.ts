@@ -54,21 +54,21 @@ export class Condition<T> {
 
   contains(p: { [key in keyof Partial<T>]: string }) {
     Object.keys(p).map(k => {
-      this._sql.push(`${Utils.quote(k)} LIKE ${(p as any)[k]}`)
+      this._sql.push(`${Utils.quote(k)} LIKE '${(p as any)[k]}'`)
     })
     return this
   }
 
   startsWith(p: { [key in keyof Partial<T>]: string }) {
     Object.keys(p).map(k => {
-      this._sql.push(`${Utils.quote(k)} LIKE ${(p as any)[k]}%`)
+      this._sql.push(`${Utils.quote(k)} LIKE '${(p as any)[k]}%'`)
     })
     return this
   }
 
   endsWith(p: { [key in keyof Partial<T>]: string }) {
     Object.keys(p).map(k => {
-      this._sql.push(`${Utils.quote(k)} LIKE %${(p as any)[k]}`)
+      this._sql.push(`${Utils.quote(k)} LIKE '%${(p as any)[k]}'`)
     })
     return this
   }
