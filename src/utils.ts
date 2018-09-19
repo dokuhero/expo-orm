@@ -1,12 +1,12 @@
 import { ColumnInfo, ColumnTypes } from './types'
 
 export class Utils {
-  static getRealColumnType(info: ColumnInfo) {
+  static getRealColumnType(name: string, info: ColumnInfo) {
     const colSize = info.size ? `(${info.size})` : ``
 
     switch (info.type) {
       case 'BOOLEAN':
-        return `BOOLEAN NOT NULL CHECK (%s IN (0,1))`
+        return `BOOLEAN NOT NULL CHECK (${name} IN (0,1))`
       case 'DATETIME':
         return `INTEGER`
       default:
@@ -15,7 +15,6 @@ export class Utils {
   }
 
   static asValue(colType: ColumnTypes, v: any) {
-
     switch (colType) {
       case 'DATETIME':
         return this.strftime(v)

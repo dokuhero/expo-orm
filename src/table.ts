@@ -33,10 +33,10 @@ export class Table<M, T extends TableClass<M>> {
     })
   }
 
-  single(sql: string): Promise<M> {
+  single<TResult = M>(sql: string): Promise<TResult> {
     debug('SQL SINGLE:', sql)
-    return this.db.trx<M>(async ({ single }) => {
-      return single<M>(sql)
+    return this.db.trx<TResult>(async ({ single }) => {
+      return single<TResult>(sql)
     })
   }
 
@@ -93,11 +93,10 @@ export class Table<M, T extends TableClass<M>> {
           ...column
         }
 
-        const colType = Utils.getRealColumnType(column)
-        const colSize = column.size ? `(${column.size})` : ''
+        const colType = Utils.getRealColumnType(key, column)
         const colPrimary = primary ? ' PRIMARY KEY' : ''
 
-        return `${key} ${colType}${colSize}${colPrimary}`
+        return `${key} ${colType}${colPrimary}`
       })
       .filter(x => x !== false)
 
@@ -128,6 +127,33 @@ export class Table<M, T extends TableClass<M>> {
     return this.exec(sql)
   }
 
+  insertMany(sets: (Partial<M> & Partial<ValueOf<T>>)[]) {
+    if (!sets.length) {
+      return
+    }
+
+    const fields: string[] = []
+    const set: any = sets.shift()
+    const selectVal = []
+    for (const key of Object.keys(set)) {
+      fields.push(key)
+      selectVal.push(
+        Utils.asValue(this.columns[key].type, (set as any)[key] as string) +
+          ' AS ' +
+          key
+      )
+    }
+
+    const unions = sets.map(s => {
+      return `UNION ALL SELECT ${fields.map(k =>
+        Utils.asValue(this.columns[k].type, s[k])
+      )}`
+    })
+
+    const sql = `INSERT INTO ${this.name} SELECT ${selectVal} ${unions}`
+    return this.exec(sql)
+  }
+
   upsert(set: Partial<M> & Partial<ValueOf<T>>) {
     return this.insert(set, true)
   }
@@ -146,6 +172,19 @@ export class Table<M, T extends TableClass<M>> {
     order?: { [P in keyof M]?: 'ASC' | 'DESC' }
   ) {
     return this.single(this._selectSql(condition, fields, order) + ' LIMIT 1')
+  }
+
+  async count(condition?: ConditionCallbackPure<M>): Promise<number> {
+    let sql = `SELECT COUNT(*) as count FROM ${this.name}`
+    if (condition) {
+      sql += ` WHERE ${this._condSql(condition)}`
+    }
+
+    return (await this.single<any>(sql)).count
+  }
+
+  async any(condition?: ConditionCallbackPure<M>): Promise<boolean> {
+    return (await this.count(condition)) > 0
   }
 
   update(
