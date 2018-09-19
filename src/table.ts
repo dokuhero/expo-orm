@@ -224,18 +224,12 @@ export class Table<M, T extends TableClass<M>> {
     order?: { [P in keyof M]?: 'ASC' | 'DESC' }
   ) {
     const { name } = this
-    let flds: string = '*'
+    let flds: string
 
     if (!fields || fields === '*') {
       flds = this._mapSelectFields(Object.keys(this.columns))
-    }
-
-    if (fields) {
-      if (typeof fields === 'string') {
-        flds = fields
-      } else {
-        flds = this._select(fields)
-      }
+    } else {
+      flds = this._select(fields)
     }
 
     let sql = `SELECT ${flds} FROM ${Utils.quote(name)}`
