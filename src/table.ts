@@ -96,16 +96,18 @@ export class Table<M, T extends TableClass<M>> {
         const colType = Utils.getRealColumnType(key, column)
         const colPrimary = primary ? ' PRIMARY KEY' : ''
 
-        return `${key} ${colType}${colPrimary}`
+        return `${Utils.quote(key)} ${colType}${colPrimary}`
       })
       .filter(x => x !== false)
 
-    const sql = `CREATE TABLE IF NOT EXISTS ${name} (${columns.join(', ')})`
+    const sql = `CREATE TABLE IF NOT EXISTS ${Utils.quote(
+      name
+    )} (${columns.join(', ')})`
     return this.exec(sql)
   }
 
   dropTable() {
-    return this.exec(`DROP TABLE IF EXISTS ${this.name}`)
+    return this.exec(`DROP TABLE IF EXISTS ${Utils.quote(this.name)}`)
   }
 
   insert(set: Partial<M> & Partial<ValueOf<T>>, upsert?: boolean) {
@@ -121,9 +123,9 @@ export class Table<M, T extends TableClass<M>> {
     }
 
     const sqlUpsert = upsert ? ' OR REPLACE' : ''
-    const sql = `INSERT${sqlUpsert} INTO ${
+    const sql = `INSERT${sqlUpsert} INTO ${Utils.quote(
       this.name
-    } (${fields}) VALUES (${values})`
+    )} (${fields.map(Utils.quote)}) VALUES (${values})`
     return this.exec(sql)
   }
 
@@ -140,7 +142,7 @@ export class Table<M, T extends TableClass<M>> {
       selectVal.push(
         Utils.asValue(this.columns[key].type, (set as any)[key] as string) +
           ' AS ' +
-          key
+          Utils.quote(key)
       )
     }
 
@@ -150,7 +152,9 @@ export class Table<M, T extends TableClass<M>> {
       )}`
     })
 
-    const sql = `INSERT INTO ${this.name} SELECT ${selectVal} ${unions}`
+    const sql = `INSERT INTO ${Utils.quote(
+      this.name
+    )} SELECT ${selectVal} ${unions}`
     return this.exec(sql)
   }
 
@@ -175,7 +179,7 @@ export class Table<M, T extends TableClass<M>> {
   }
 
   async count(condition?: ConditionCallbackPure<M>): Promise<number> {
-    let sql = `SELECT COUNT(*) as count FROM ${this.name}`
+    let sql = `SELECT COUNT(*) as count FROM ${Utils.quote(this.name)}`
     if (condition) {
       sql += ` WHERE ${this._condSql(condition)}`
     }
@@ -191,9 +195,13 @@ export class Table<M, T extends TableClass<M>> {
     set: { [P in keyof ValueOf<T>]?: any } & { [P in keyof M]?: any },
     condition?: ConditionCallbackPure<M>
   ) {
-    let sql = `UPDATE ${this.name} SET ${Object.keys(set)
+    let sql = `UPDATE ${Utils.quote(this.name)} SET ${Object.keys(set)
       .map(
-        k => `${k} = ${Utils.asValue(this.columns[k].type, (set as any)[k])}`
+        k =>
+          `${Utils.quote(k)} = ${Utils.asValue(
+            this.columns[k].type,
+            (set as any)[k]
+          )}`
       )
       .join(', ')}`
 
@@ -206,7 +214,7 @@ export class Table<M, T extends TableClass<M>> {
 
   delete(condition: ConditionCallbackPure<M>) {
     return this.exec(
-      `DELETE FROM ${this.name} WHERE ${this._condSql(condition)}`
+      `DELETE FROM ${Utils.quote(this.name)} WHERE ${this._condSql(condition)}`
     )
   }
 
@@ -230,7 +238,7 @@ export class Table<M, T extends TableClass<M>> {
       }
     }
 
-    let sql = `SELECT ${flds} FROM ${name}`
+    let sql = `SELECT ${flds} FROM ${Utils.quote(name)}`
     if (condition) {
       sql += ` WHERE ${this._condSql(condition)}`
     }
@@ -265,9 +273,9 @@ export class Table<M, T extends TableClass<M>> {
 
   private _mapSelectField(k: string) {
     if (this.columns[k].type === 'DATETIME') {
-      return `datetime(${k},'unixepoch') AS ${k}`
+      return `datetime(${k},'unixepoch') AS ${Utils.quote(k)}`
     } else {
-      return k
+      return Utils.quote(k)
     }
   }
 

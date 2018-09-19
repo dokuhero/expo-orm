@@ -1,6 +1,10 @@
 import { ColumnInfo, ColumnTypes } from './types'
 
 export class Utils {
+  static quote(str: string): string {
+    return `"${str}"`
+  }
+
   static getRealColumnType(name: string, info: ColumnInfo) {
     const colSize = info.size ? `(${info.size})` : ``
 
