@@ -154,7 +154,7 @@ export class Table<M, T extends TableClass<M>> {
 
     const sql = `INSERT INTO ${Utils.quote(this.name)} (${fields.map(
       Utils.quote
-    )}) SELECT ${selectVal} ${unions}`
+    )}) SELECT ${selectVal} ${unions.join(' ')}`
     return this.exec(sql)
   }
 
