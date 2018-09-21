@@ -25,6 +25,8 @@ then
 	# push to repo
 	git push origin master --tags
 	echo
-	echo "$"
-	echo "Done! - don't forget to publish npm after release done on github."
+	echo "Publishing to npm..."
+	npm publish --access public
+	echo
+	echo "Done! -- published to https://www.npmjs.com/package/@dokuhero/expo-orm"
 fi
