@@ -40,11 +40,11 @@ export class Table<M, T extends TableClass<M>> {
     })
   }
 
-  query(sql: string): Promise<M[]> {
+  query<TResult = M>(sql: string): Promise<TResult[]> {
     debug('SQL QUERY:', sql)
-    return this.db.trx<M[]>(async ({ query }) => {
+    return this.db.trx<TResult[]>(async ({ query }) => {
       return new Promise(resolve => {
-        query<M[]>(sql).then(data => {
+        query<TResult[]>(sql).then(data => {
           const result = data.map(d => {
             const obj = {}
             Object.keys(d).forEach(k => {
