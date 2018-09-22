@@ -24,6 +24,7 @@ export class Table<M, T extends TableClass<M>> {
     this.name = table.name
     this.properties = Object.getOwnPropertyNames(this.table)
     this.properties.forEach(k => ((this.descriptor as any)[k] = k))
+    this._mapResult = this._mapResult.bind(this)
   }
 
   exec(sql: string): Promise<SQLite.ResultSet> {
@@ -36,7 +37,11 @@ export class Table<M, T extends TableClass<M>> {
   single<TResult = M>(sql: string): Promise<TResult> {
     debug('SQL SINGLE:', sql)
     return this.db.trx<TResult>(async ({ single }) => {
-      return single<TResult>(sql)
+      return new Promise(resolve => {
+        single<TResult>(sql).then(data => {
+          resolve(this._mapResult(data))
+        })
+      })
     })
   }
 
@@ -45,19 +50,7 @@ export class Table<M, T extends TableClass<M>> {
     return this.db.trx<TResult[]>(async ({ query }) => {
       return new Promise(resolve => {
         query<TResult[]>(sql).then(data => {
-          const result = data.map(d => {
-            const obj = {}
-            Object.keys(d).forEach(k => {
-              if (this.columns[k].type === 'DATETIME') {
-                obj[k] = Utils.dateParse(d[k] as any)
-              } else {
-                obj[k] = d[k]
-              }
-            })
-            return obj
-          })
-
-          resolve(result)
+          resolve(data.map(this._mapResult))
         })
       })
     })
@@ -276,5 +269,17 @@ export class Table<M, T extends TableClass<M>> {
 
   private _condSql(fn: ConditionCallbackPure<M>) {
     return fn(new Condition(this.descriptor, this.columns)).sql()
+  }
+
+  private _mapResult<T = M>(d: T) {
+    const obj = {}
+    Object.keys(d).forEach(k => {
+      if (this.columns[k] && this.columns[k].type === 'DATETIME') {
+        obj[k] = Utils.dateParse(d[k] as any)
+      } else {
+        obj[k] = d[k]
+      }
+    })
+    return obj
   }
 }
