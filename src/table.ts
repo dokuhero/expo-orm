@@ -272,6 +272,10 @@ export class Table<M, T extends TableClass<M>> {
   }
 
   private _mapResult<T = M>(d: T) {
+    if (!d) {
+      return undefined
+    }
+
     const obj = {}
     Object.keys(d).forEach(k => {
       if (this.columns[k] && this.columns[k].type === 'DATETIME') {
