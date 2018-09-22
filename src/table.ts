@@ -261,7 +261,7 @@ export class Table<M, T extends TableClass<M>> {
   private _mapSelectField(k: string) {
     const field = Utils.quote(k)
     if (this.columns[k].type === 'DATETIME') {
-      return `datetime(${field},'unixepoch') AS ${field}`
+      return Utils.selectAsDate(field)
     }
 
     return field

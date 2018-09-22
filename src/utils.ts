@@ -103,4 +103,8 @@ export class Utils {
       times[2]
     )
   }
+
+  static selectAsDate(field: string, asField: string = field) {
+    return `datetime(${field},'unixepoch') AS ${asField}`
+  }
 }
