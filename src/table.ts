@@ -18,10 +18,10 @@ export class Table<M, T extends TableClass<M>> {
   db: Db<T>
   columns: { [key: string]: { primary: boolean } & ColumnInfo } = {}
 
-  constructor(table: T, db: Db<T>) {
+  constructor(table: T, name: string, db: Db<T>) {
     this.table = new table()
     this.db = db
-    this.name = table.name
+    this.name = name
     this.properties = Object.getOwnPropertyNames(this.table)
     this.properties.forEach(k => ((this.descriptor as any)[k] = k))
     this._mapResult = this._mapResult.bind(this)

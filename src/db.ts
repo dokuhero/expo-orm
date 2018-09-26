@@ -39,7 +39,7 @@ export class Db<T> {
 
       for (const key of Object.keys(config.entities)) {
         const cls = config.entities as any
-        const table = new Table(cls[key] as any, _db)
+        const table = new Table(cls[key] as any, key, _db)
         tables[key] = table
         await table.createTable()
       }
