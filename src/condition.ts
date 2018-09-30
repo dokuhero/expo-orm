@@ -27,6 +27,54 @@ export class Condition<T> {
     return this
   }
 
+  greaterThan(p: { [key in keyof Partial<T>]: any }) {
+    Object.keys(p).map(k => {
+      this._sql.push(
+        `${Utils.quote(k)} > ${Utils.asValue(
+          this.columns[k].type,
+          (p as any)[k]
+        )}`
+      )
+    })
+    return this
+  }
+
+  greaterThanOrEqual(p: { [key in keyof Partial<T>]: any }) {
+    Object.keys(p).map(k => {
+      this._sql.push(
+        `${Utils.quote(k)} > ${Utils.asValue(
+          this.columns[k].type,
+          (p as any)[k]
+        )}`
+      )
+    })
+    return this
+  }
+
+  lessThan(p: { [key in keyof Partial<T>]: any }) {
+    Object.keys(p).map(k => {
+      this._sql.push(
+        `${Utils.quote(k)} < ${Utils.asValue(
+          this.columns[k].type,
+          (p as any)[k]
+        )}`
+      )
+    })
+    return this
+  }
+
+  lessThanOrEqual(p: { [key in keyof Partial<T>]: any }) {
+    Object.keys(p).map(k => {
+      this._sql.push(
+        `${Utils.quote(k)} <= ${Utils.asValue(
+          this.columns[k].type,
+          (p as any)[k]
+        )}`
+      )
+    })
+    return this
+  }
+
   in(p: { [key in keyof Partial<T>]: any[] }) {
     Object.keys(p).map(k => {
       this._sql.push(
