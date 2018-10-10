@@ -78,6 +78,14 @@ export class Db<T> {
     })
   }
 
+  async dropAllTables() {
+    debug('dropping tables...')
+    for (const key of Object.keys(this.tables)) {
+      const table: Table<any, any> = this.tables[key]
+      await table.dropTable()
+    }
+  }
+
   async backup(callback: (state: 'sending-email' | 'sent' | 'cancel') => void) {
     // TODO: next release
     // await this.backupItemImages()
@@ -193,11 +201,7 @@ export class Db<T> {
         return new Promise<boolean>(resolve => {
           FileSystem.readAsStringAsync(res.uri).then(async sql => {
             if (recreateTables) {
-              debug('dropping tables...')
-              for (const key of Object.keys(this.tables)) {
-                const table: Table<any, any> = this.tables[key]
-                await table.dropTable()
-              }
+              await this.dropAllTables()
 
               debug('recreate tables...')
               for (const key of Object.keys(this.tables)) {
