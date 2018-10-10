@@ -191,16 +191,31 @@ export class Db<T> {
     }
   }
 
-  async restoreFromSql(recreateTables: boolean = true): Promise<boolean> {
+  async restoreFromSql(
+    callback: (
+      status:
+        | 'select-file'
+        | 'start-restore'
+        | 'recreate-tables'
+        | 'restoring'
+        | 'done'
+        | 'cancel'
+        | 'error'
+    ) => void,
+    recreateTables: boolean = true
+  ): Promise<boolean> {
     try {
+      callback('select-file')
       const res: any = await DocumentPicker.getDocumentAsync({
         type: '*/*'
       })
 
       if (res.type === 'success') {
+        callback('start-restore')
         return new Promise<boolean>(resolve => {
           FileSystem.readAsStringAsync(res.uri).then(async sql => {
             if (recreateTables) {
+              callback('recreate-tables')
               await this.dropAllTables()
 
               debug('recreate tables...')
@@ -211,6 +226,7 @@ export class Db<T> {
             }
 
             debug('starting restore database...')
+            callback('restoring')
             const sqls = sql.split('INSERT INTO')
             this.sqliteDb.transaction(
               t => {
@@ -224,9 +240,12 @@ export class Db<T> {
                   }
                 }
               },
-              error => {},
+              error => {
+                callback('error')
+              },
               () => {
                 debug('restore database done!')
+                callback('done')
                 resolve(true)
               }
             )
@@ -234,8 +253,10 @@ export class Db<T> {
         })
       }
 
+      callback('cancel')
       return false
     } catch (error) {
+      callback('error')
       throw error
     }
   }
