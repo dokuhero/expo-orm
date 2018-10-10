@@ -140,6 +140,102 @@ export class Db<T> {
     }
   }
 
+  async backupToSql(
+    callback: (
+      state: 'generating' | 'sending-email' | 'sent' | 'cancel'
+    ) => void
+  ) {
+    let sql = ''
+
+    callback('generating')
+    for (const key of Object.keys(this.tables)) {
+      const table: Table<any, any> = this.tables[key]
+      sql += (await table.buildBackupSql()) + '\r\n'
+    }
+
+    const now = new Date()
+    const timestamp = Utils.timeStamp(now)
+    const { name } = Constants.manifest
+
+    const targetUri = `${FileSystem.documentDirectory}backup/${name
+      .replace(/\s/g, '-')
+      .toLowerCase()}-${timestamp}.db.sql`
+
+    // avoid (No such file or directory) while writing file
+    await FileSystem.copyAsync({
+      from: this.getFileUri(),
+      to: targetUri
+    })
+    await FileSystem.writeAsStringAsync(targetUri, sql)
+
+    callback('sending-email')
+
+    const res = await MailComposer.composeAsync({
+      attachments: [targetUri],
+      body: `${name} backup data`,
+      subject: `${name} backup data ${now.toISOString()}`
+    })
+
+    if (res.status === 'sent') {
+      callback('sent')
+    } else {
+      callback('cancel')
+    }
+  }
+
+  async restoreFromSql(recreateTables: boolean = true): Promise<boolean> {
+    try {
+      const res: any = await DocumentPicker.getDocumentAsync({
+        type: '*/*'
+      })
+
+      if (res.type === 'success') {
+        return new Promise<boolean>(resolve => {
+          FileSystem.readAsStringAsync(res.uri).then(async sql => {
+            if (recreateTables) {
+              debug('dropping tables...')
+              for (const key of Object.keys(this.tables)) {
+                const table: Table<any, any> = this.tables[key]
+                await table.dropTable()
+              }
+
+              debug('recreate tables...')
+              for (const key of Object.keys(this.tables)) {
+                const table: Table<any, any> = this.tables[key]
+                await table.createTable()
+              }
+            }
+
+            debug('starting restore database...')
+            const sqls = sql.split('INSERT INTO')
+            this.sqliteDb.transaction(
+              t => {
+                for (let s of sqls) {
+                  s = s.trim()
+                  if (s && s.length) {
+                    // @ts-ignore
+                    const tableName = s.match(/"(.*?)"/)[1]
+                    debug('restoring ', tableName)
+                    t.executeSql(`INSERT INTO ${s}`)
+                  }
+                }
+              },
+              error => {},
+              () => {
+                debug('restore database done!')
+                resolve(true)
+              }
+            )
+          })
+        })
+      }
+
+      return false
+    } catch (error) {
+      throw error
+    }
+  }
+
   getFileUri() {
     return `${FileSystem.documentDirectory}SQLite/${this.config.database}`
   }

@@ -45,6 +45,22 @@ export class Utils {
     return v
   }
 
+  static asRawValue(colType: ColumnTypes, v: any) {
+    if (v === null) {
+      return 'NULL'
+    }
+
+    switch (colType) {
+      case 'DATETIME':
+      case 'INTEGER':
+      case 'BOOLEAN':
+      case 'DECIMAL':
+        return v
+    }
+
+    return `'${v}'`
+  }
+
   static timeStamp(date: Date) {
     return date
       .toISOString()

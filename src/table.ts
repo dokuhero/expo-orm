@@ -99,6 +99,63 @@ export class Table<M, T extends TableClass<M>> {
     return this.exec(sql)
   }
 
+  async buildBackupSql() {
+    const { name, properties, table } = this
+
+    const columns = properties
+      .map(key => {
+        let column = Reflect.getMetadata(
+          COLUMN_META_KEY,
+          table,
+          key
+        ) as ColumnInfo
+
+        if (!column) {
+          column = Reflect.getMetadata(
+            PRIMARY_META_KEY,
+            table,
+            key
+          ) as ColumnInfo
+        }
+
+        if (!column) {
+          return false
+        }
+
+        return Utils.quote(key)
+      })
+      .filter(x => x !== false)
+
+    const cols = columns.join(', ')
+    const tbl = Utils.quote(name)
+
+    // const res = await this.exec(`SELECT ${cols} FROM ${tbl}`)
+    const values: any[] = await this.db.trx(async ({ query }) => {
+      return new Promise(resolve => {
+        query(`SELECT ${cols} FROM ${tbl}`).then(data => {
+          resolve(data)
+        })
+      })
+    })
+
+    if (!values || !values.length) {
+      return ''
+    }
+
+    const sql = `INSERT INTO ${tbl} (${cols}) VALUES ${values
+      .map(value => {
+        return (
+          '(' +
+          Object.keys(value)
+            .map(col => Utils.asRawValue(this.columns[col].type, value[col]))
+            .join(',') +
+          ')'
+        )
+      })
+      .join(',')}`
+    return sql + ';'
+  }
+
   dropTable() {
     return this.exec(`DROP TABLE IF EXISTS ${Utils.quote(this.name)}`)
   }
