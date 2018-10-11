@@ -335,8 +335,8 @@ export class Table<M, T extends TableClass<M>> {
 
     const obj = {}
     Object.keys(d).forEach(k => {
-      if (this.columns[k] && this.columns[k].type === 'DATETIME') {
-        obj[k] = Utils.dateParse(d[k] as any)
+      if (this.columns[k]) {
+        obj[k] = Utils.asResult(this.columns[k].type, d[k] as any)
       } else {
         obj[k] = d[k]
       }

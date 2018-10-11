@@ -11,6 +11,7 @@ export class Utils {
     switch (info.type) {
       case 'BOOLEAN':
         return `BOOLEAN NOT NULL CHECK (${name} IN (0,1))`
+      case 'MONEY':
       case 'DATETIME':
         return `INTEGER`
       default:
@@ -18,10 +19,23 @@ export class Utils {
     }
   }
 
+  static asResult(colType: ColumnTypes, v: any) {
+    switch (colType) {
+      case 'DATETIME':
+        return this.dateParse(v)
+      case 'MONEY':
+        return v / 100
+    }
+
+    return v
+  }
+
   static asValue(colType: ColumnTypes, v: any) {
     switch (colType) {
       case 'DATETIME':
         return this.strftime(v)
+      case 'MONEY':
+        return Math.round(v * 100)
     }
 
     switch (typeof v) {
