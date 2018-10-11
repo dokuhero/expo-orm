@@ -27,6 +27,18 @@ export class Condition<T> {
     return this
   }
 
+  notEquals(p: { [key in keyof Partial<T>]: any }) {
+    Object.keys(p).map(k => {
+      this._sql.push(
+        `${Utils.quote(k)} <> ${Utils.asValue(
+          this.columns[k].type,
+          (p as any)[k]
+        )}`
+      )
+    })
+    return this
+  }
+
   greaterThan(p: { [key in keyof Partial<T>]: any }) {
     Object.keys(p).map(k => {
       this._sql.push(
