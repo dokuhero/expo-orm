@@ -1,6 +1,6 @@
 {
   "name": "@dokuhero/expo-orm",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "description": "SQLite ORM for Typescript works in Expo",
   "main": "dist/index.js",
   "typings": "typings/index.d.ts",
