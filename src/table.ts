@@ -1,4 +1,3 @@
-import { Debug } from '@dokuhero/debug'
 import { SQLite } from 'expo'
 import 'reflect-metadata'
 import { Condition, ConditionCallbackPure } from './condition'
@@ -7,8 +6,6 @@ import { Utils } from './utils'
 import { ValueOf, TableClass, ColumnInfo } from './types'
 import { COLUMN_META_KEY } from './column'
 import { PRIMARY_META_KEY } from './primary'
-
-const debug = Debug('@dokuhero/expo-orm:table')
 
 export class Table<M, T extends TableClass<M>> {
   properties: string[]
@@ -27,33 +24,30 @@ export class Table<M, T extends TableClass<M>> {
     this._mapResult = this._mapResult.bind(this)
   }
 
+  /**
+   * @deprecated Will be removed soon. Use db.exec instead.
+   * @param sql SQL string
+   */
   exec(sql: string): Promise<SQLite.ResultSet> {
-    debug('SQL EXEC:', sql)
-    return this.db.trx(async ({ exec }) => {
-      return exec(sql)
-    })
+    return this.db.exec(sql)
   }
 
-  single<TResult = M>(sql: string): Promise<TResult> {
-    debug('SQL SINGLE:', sql)
-    return this.db.trx<TResult>(async ({ single }) => {
-      return new Promise(resolve => {
-        single<TResult>(sql).then(data => {
-          resolve(this._mapResult(data))
-        })
-      })
-    })
+  /**
+   * @deprecated Will be removed soon. Use db.single instead.
+   * @param sql SQL string
+   */
+  async single<TResult = M>(sql: string): Promise<TResult | undefined> {
+    const data = await this.db.single<TResult>(sql)
+    return this._mapResult(data)
   }
 
-  query<TResult = M>(sql: string): Promise<TResult[]> {
-    debug('SQL QUERY:', sql)
-    return this.db.trx<TResult[]>(async ({ query }) => {
-      return new Promise(resolve => {
-        query<TResult[]>(sql).then(data => {
-          resolve(data.map(this._mapResult))
-        })
-      })
-    })
+  /**
+   * @deprecated Will be removed soon. Use db.query instead.
+   * @param sql SQL string
+   */
+  async query<TResult = M>(sql: string): Promise<TResult[]> {
+    const data = await this.db.query<TResult>(sql)
+    return data.map(d => this._mapResult(d) as TResult)
   }
 
   createTable() {
@@ -328,7 +322,7 @@ export class Table<M, T extends TableClass<M>> {
     return fn(new Condition(this.descriptor, this.columns)).sql()
   }
 
-  private _mapResult<T = M>(d: T) {
+  private _mapResult<T = M>(d: T): T | undefined {
     if (!d) {
       return undefined
     }
@@ -341,6 +335,6 @@ export class Table<M, T extends TableClass<M>> {
         obj[k] = d[k]
       }
     })
-    return obj
+    return obj as T
   }
 }

@@ -78,6 +78,35 @@ export class Db<T> {
     })
   }
 
+  exec(sql: string): Promise<SQLite.ResultSet> {
+    debug('SQL EXEC:', sql)
+    return this.trx(async ({ exec }) => {
+      return exec(sql)
+    })
+  }
+
+  single<TResult = any>(sql: string): Promise<TResult> {
+    debug('SQL SINGLE:', sql)
+    return this.trx<TResult>(async ({ single }) => {
+      return new Promise(resolve => {
+        single<TResult>(sql).then(data => {
+          resolve(data)
+        })
+      })
+    })
+  }
+
+  query<TResult = any>(sql: string): Promise<TResult[]> {
+    debug('SQL QUERY:', sql)
+    return this.trx<TResult[]>(async ({ query }) => {
+      return new Promise(resolve => {
+        query<TResult[]>(sql).then(data => {
+          resolve(data)
+        })
+      })
+    })
+  }
+
   async dropAllTables() {
     debug('dropping tables...')
     for (const key of Object.keys(this.tables)) {
