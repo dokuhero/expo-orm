@@ -256,10 +256,13 @@ export class Table<M, T extends TableClass<M>> {
     return this.exec(sql)
   }
 
-  delete(condition: ConditionCallbackPure<M>) {
-    return this.exec(
-      `DELETE FROM ${Utils.quote(this.name)} WHERE ${this._condSql(condition)}`
-    )
+  delete(condition?: ConditionCallbackPure<M>) {
+    const sql = condition
+      ? `DELETE FROM ${Utils.quote(this.name)} WHERE ${this._condSql(
+          condition
+        )}`
+      : `DELETE FROM ${Utils.quote(this.name)}`
+    return this.exec(sql)
   }
 
   private _selectSql(
